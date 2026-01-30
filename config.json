@@ -1,0 +1,21 @@
+{
+  "bot_settings": {
+    "default_risk_percent": 1.0,
+    "max_risk_percent": 5.0,
+    "enable_auto_trade": false
+  },
+  "risk_management": {
+    "max_daily_loss_percent": 10.0,
+    "max_trades_per_day": 5,
+    "min_risk_reward_ratio": 1.5
+  },
+  "broker": {
+    "name": "ctrader",
+    "account_id": "your_ctrader_account_id",
+    "lot_size_calculation": "auto"
+  },
+  "telegram": {
+    "allowed_channels": [],
+    "send_confirmations": true
+  }
+}
