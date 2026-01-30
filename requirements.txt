@@ -1,0 +1,5 @@
+python-telegram-bot==21.0
+google-generativeai==0.3.2
+python-dotenv==1.0.0
+metaapi-cloud-sdk==27.0.2
+requests==2.31.0
