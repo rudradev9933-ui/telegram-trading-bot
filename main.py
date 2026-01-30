@@ -59,7 +59,8 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         # Download photo
         photo = await update.channel_post.photo[-1].get_file()
-        photo_bytes = await photo.download_as_bytearray()
+        photo_file = await photo.download_as_bytearray()
+        photo_bytes = bytes(photo_file)  # ✅ FIX: Convert bytearray to bytes
         caption = update.channel_post.caption or ""
         
         # Prepare Gemini prompt
