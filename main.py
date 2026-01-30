@@ -36,7 +36,7 @@ if not TELEGRAM_BOT_TOKEN or not GEMINI_API_KEY:
 # 🤖 INITIALIZE MODULES
 # ================================
 genai.configure(api_key=GEMINI_API_KEY)
-gemini_model = genai.GenerativeModel("gemini-1.0-pro-vision")
+gemini_model = genai.GenerativeModel('gemini-1.5-flash-latest')
 
 signal_parser = SignalParser()
 broker_api = get_broker_api(CONFIG["broker"]["name"])
