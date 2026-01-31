@@ -6,9 +6,10 @@ Automated trading signal processor with AI vision
 import asyncio
 import os
 import json
+import base64
 from telegram import Update
 from telegram.ext import Application, MessageHandler, filters, ContextTypes
-import google.generativeai as genai
+from openai import OpenAI
 from dotenv import load_dotenv
 
 # Import custom modules
@@ -22,21 +23,20 @@ load_dotenv()
 # 🔑 CONFIGURATION
 # ================================
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
 # Load config
 with open('config.json', 'r') as f:
     CONFIG = json.load(f)
 
 # Validate keys
-if not TELEGRAM_BOT_TOKEN or not GEMINI_API_KEY:
+if not TELEGRAM_BOT_TOKEN or not OPENAI_API_KEY:
     raise ValueError("❌ Missing API keys! Check .env file")
 
 # ================================
 # 🤖 INITIALIZE MODULES
 # ================================
-genai.configure(api_key=GEMINI_API_KEY)
-gemini_model = genai.GenerativeModel('gemini-1.5-flash-latest')
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 signal_parser = SignalParser()
 broker_api = get_broker_api(CONFIG["broker"]["name"])
@@ -60,10 +60,13 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Download photo
         photo = await update.channel_post.photo[-1].get_file()
         photo_file = await photo.download_as_bytearray()
-        photo_bytes = bytes(photo_file)  # ✅ FIX: Convert bytearray to bytes
+        photo_bytes = bytes(photo_file)
         caption = update.channel_post.caption or ""
         
-        # Prepare Gemini prompt
+        # Convert to base64 for OpenAI
+        base64_image = base64.b64encode(photo_bytes).decode('utf-8')
+        
+        # Prepare prompt
         prompt = f"""
         You are a trading signal analyzer. Extract the following from this chart image:
         
@@ -78,16 +81,33 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         Respond in clear, structured text format.
         """
         
-        print("⏳ Analyzing image with Gemini AI...")
+        print("⏳ Analyzing image with GPT-4 Vision...")
         
-        # Send to Gemini
-        response = gemini_model.generate_content([
-            prompt,
-            {"mime_type": "image/jpeg", "data": photo_bytes}
-        ])
+        # Send to GPT-4 Vision
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{base64_image}"
+                            }
+                        }
+                    ]
+                }
+            ],
+            max_tokens=500
+        )
+        
+        # Get response
+        response_text = response.choices[0].message.content
         
         # Parse signal
-        signal = signal_parser.parse_gemini_response(response.text)
+        signal = signal_parser.parse_gemini_response(response_text)
         
         # Display result
         print(signal_parser.format_signal_output(signal))
@@ -117,7 +137,7 @@ def main():
 ╔════════════════════════════════════════╗
 ║  🤖 AI TRADING SIGNAL BOT v2.0        ║
 ║  📡 Listening to channel photos        ║
-║  ⚡ Gemini Vision AI enabled           ║
+║  ⚡ GPT-4 Vision AI enabled            ║
 ║  💼 Broker API ready                   ║
 ╚════════════════════════════════════════╝
     """)
